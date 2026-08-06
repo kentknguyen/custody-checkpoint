@@ -190,6 +190,13 @@ Expiry is evaluated lazily to check the moment another scan occurs and not in re
 A tag left resting on the reader is continuously in the RF field, so read() returns repeatedly. One physical presentation produces many reads. Any credential seen again within 3 seconds of last being in the field is therefore ignored entirely, with no event logged; the interval slides, so a card parked on the reader normally yields exactly one event. Transient read failures at the hardware level can interrupt that sequence, in which case the next successful read is treated as a new presentation. Without this, a receiving party holding their fob a beat too long would generate an event where a second receiving credential is read after the state has advanced. The system is expecting a releasing credential, but gets a receiving credential, which would abort the session, and writes a security event to the custody log that never actually occurred. The cost is that a legitimate re-presentation of the same credential within 3 seconds is silently dropped, and the log therefore records presentations as interpreted by the debounce rather than every RF-level read. DEBOUNCE_SECONDS is tunable; distinguishing "never left the field" from "removed and re-presented" would require presence polling via read_no_block(), which is out of scope here.
 
 
+## Prior art
+
+A preliminary prior-art search found that the mechanisms this demo combines are well established. Registry-held title as an alternative to the bill of lading dates to at least 2000 (US7069252). Verifying a collector against system-held shipment data before release is patented across multiple jurisdictions (UPS, US10929806). Hash-chained tamper-evident logging with external anchoring is mature (VEGA Grieshaber, US11126750; Microsoft, US11139954). RFID ownership-transfer protocols are an established academic literature.
+
+This demo claims no novelty. It exists to show that the capability is cheap and has been available for decades. The gap is deployment, not invention.
+
+
 ## Sources
 
 - Recovery details and analysis of the document-fraud method —
