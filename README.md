@@ -46,14 +46,16 @@ This demo is a checkpoint system where two parties (releaser/receiver) plus the 
 
 ## Setup
 
-```
-# 1. Clone the repository
-git clone https://github.com/kentknguyen/custody-checkpoint.git
-cd custody-checkpoint
+Assumes Raspberry Pi OS (64-bit) installed with SSH enabled.
 
-# 2. Enable SPI (required for the RC522 reader)
+```
+# 1. Enable SPI (required for the RC522 reader)
 sudo raspi-config      # Interface Options → SPI → Enable
 sudo reboot
+
+# 2. Clone the repository
+git clone https://github.com/kentknguyen/custody-checkpoint.git
+cd custody-checkpoint
 
 # 3. Install dependencies
 pip install -r requirements.txt --break-system-packages
