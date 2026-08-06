@@ -1,0 +1,6 @@
+# Runtime data - the custody log is created on first run
+logs/
+
+# Python
+__pycache__/
+*.py[cod]
