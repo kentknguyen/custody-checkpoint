@@ -72,7 +72,7 @@ python3 -c "from mfrc522 import SimpleMFRC522; print(SimpleMFRC522().read()[0])"
 #      and intended_recipient to point at your new credential UIDs.
 #
 #    main.py runs config.validate() on startup and will refuse to start,
-#    naming the problem, if the registries are inconsistent — for instance if
+#    naming the problem, if the registries are inconsistent. For instance, if
 #    an asset's intended_recipient isn't a credential you registered.
 ```
 
