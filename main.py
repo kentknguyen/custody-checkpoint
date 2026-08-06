@@ -34,7 +34,7 @@ def print_banner():
     print()
 
 
-def print_event_log(limit=6):
+def print_event_log(limit=3):
     events = db.get_recent_events(limit)
     print("--- Custody Event Log (most recent first) ---")
     if not events:
