@@ -148,19 +148,23 @@ IRQ       → Unconnected
 ```
 
 
-## Limitations
+## Scope and Limitations
 
-The S50 cards and key fobs used for this demo use the Crypto-1 cipher, which was broken in 2008. These cards and key fobs can be cloned with off the shelf parts or an Android NFC device. The demo credential layer is insecure as a deliberate design choice, and is NOT intended to be used for production deployment which would require DESFire EV3 or equivalent. The main purpose of this demo is merely to outline a viable chain of custody model to address the flaw that was exploited during the March 24, 2026 drone theft incident.
-
-The transfers table is NOT tamper-evident by design and is only updated when handoff is complete, when a session is rejected, and when a timing window is closed, and is merely a summary derived from the event log itself.
-
-Custody events logging is tamper-evident, but not tamper-proof since there is no secret in hashing. If a bad actor has write access to custody.db and a copy of database.py, they can edit rows and produce counterfeit hashing resulting in a verified chain. The system detects chain modification and interior deletion. Truncation is not detectable, because nothing in the log records its own length. Delete events from the end and every remaining link still validates, so the chain reports intact. Detecting it requires comparing the head hash against a value recorded somewhere the operator does not control.
+### Out of scope
 
 "System active" is merely text. In this demo, there is no actual drone or drone operating software running; this would require additional layers for production, which is not part of this demo.
 
-In this demo, the reader only verifies the credential, not the person holding it. A valid credential in the wrong hands still passes. Two-party verification mitigates this by requiring two credentials to be compromised rather than one, and the log is what makes reconstruction of a handoff possible afterward. In a production version at the reader, another layer of verification such as a PIN entry, biometrics, or photo capture would likely be necessary, but is NOT built into this demo.
-
 Credential enrollment is out of scope for this demo. A system that issues credentials on the strength of forged paperwork inherits the same weakness one step earlier, and enrollment requires its own verification process.
+
+### Deliberate tradeoffs
+
+The S50 cards and key fobs used for this demo use the Crypto-1 cipher, which was broken in 2008. These cards and key fobs can be cloned with off the shelf parts or an Android NFC device. The demo credential layer is insecure as a deliberate design choice, and is NOT intended to be used for production deployment which would require DESFire EV3 or equivalent. The main purpose of this demo is merely to outline a viable chain of custody model to address the flaw that was exploited during the March 24, 2026 drone theft incident.
+
+### Known weaknesses
+
+Custody events logging is tamper-evident, but not tamper-proof since there is no secret in hashing. If a bad actor has write access to custody.db and a copy of database.py, they can edit rows and produce counterfeit hashing resulting in a verified chain. The system detects chain modification and interior deletion. Truncation is not detectable, because nothing in the log records its own length. Delete events from the end and every remaining link still validates, so the chain reports intact. Detecting it requires comparing the head hash against a value recorded somewhere the operator does not control.
+
+In this demo, the reader only verifies the credential, not the person holding it. A valid credential in the wrong hands still passes. Two-party verification mitigates this by requiring two credentials to be compromised rather than one, and the log is what makes reconstruction of a handoff possible afterward. In a production version at the reader, another layer of verification such as a PIN entry, biometrics, or photo capture would likely be necessary, but is NOT built into this demo.
 
 
 ## Design Decisions
@@ -176,6 +180,8 @@ Roles are strings rather than booleans in order for the system to govern what th
 This demo is a single hop transfer. One custody transfer from releaser to receiver, and the manifest does not advance after delivery. Presenting an asset that has already reached its manifested recipient is rejected at the first scan, with the reason stated that the manifest names no onward destination. A multi-hop chain would require credentials to hold both roles and the manifest to advance with each hop, neither of which is implemented here.
 
 A revoked credential is still in the registry, flagged revoked with a date; it was once valid and is now withdrawn. A credential that isn't in the registry at all, whether removed or never added, logs as unknown. Both are rejected identically at the reader and they mean different things afterward. Revoked implies a personnel event and preserves when it happened. Unknown implies a credential the system has never authorized.
+
+The transfers table is NOT tamper-evident by design and is only updated when handoff is complete, when a session is rejected, and when a timing window is closed, and is merely a summary derived from the event log itself.
 
 CUSTODY_ASSIGNED versus TRANSFER_COMPLETED determines which party possesses the asset vs which party has released or received the asset. This distinction is critical since the releaser is the final scan in this demo. The transfer is a separate event from custody, because otherwise the system would read as TRANSFER_COMPLETED but custody would still be assigned to the releaser. By making transfers and custody separate events, the system authorizes handoff by ensuring custody is tied to the receiver once the final scan by the releaser event actually happens. Custody is derived from custody_events rather than the transfers table because transfers is mutable and unchained. If custody were read from the summary table, someone with database access could reassign an asset by editing a single row, and nothing would detect it. Reading from the hash-chained log means changing who holds an asset requires breaking the chain. The initial custodian is the releaser in the declared registry, so if an invalid receiver attempts to make a scan, the fallback of asset custody goes to the releaser and never moves until a valid receiver credential is presented.
 
