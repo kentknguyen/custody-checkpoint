@@ -90,9 +90,9 @@ python3 test_scenarios.py   # run the scenario tests, no hardware required
 config.py     — Two registries. CREDENTIALS maps credential UIDs to holder,
                 organization, role (RELEASING or RECEIVING), and revocation
                 status. ASSETS maps asset tag UIDs to an asset ID,
-                description, initial custodian, and intended recipient — the
-                manifest. Also holds the transfer window and debounce
-                settings.
+                description, initial custodian, and intended recipient. The
+                intended recipient is the manifest. Also holds the transfer
+                window and debounce settings.
 
 database.py   — Schema, writes, and hashing. Creates the custody_events log
                 and the transfers summary table. Every event is hashed
