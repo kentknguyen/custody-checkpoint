@@ -109,8 +109,10 @@ verify.py     — Chain verifier. Recomputes the log from the genesis anchor and
 main.py       — Entry point. Reads the RC522, applies the debounce, passes each
                 presentation to the state machine, and prints the result.
 
-test_scenarios.py — Scenario tests for the custody state machine.
-                    Exercises every path through handoff.py against a temporary database and fixture registries. Requires no hardware and does not touch the real custody log.
+test_scenarios.py — Scenario tests for the custody state machine. Exercises
+                every path through handoff.py against a temporary database and
+                fixture registries. Requires no hardware and does not touch
+                the real custody log.
 
 logs/custody.db — SQLite database, created on first run. Not committed.
 ```
