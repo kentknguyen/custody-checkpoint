@@ -72,7 +72,7 @@ CREDENTIALS = {
 ASSETS = {
     "979094549427": {
         "asset_id": "CERES-C31-0001",
-        "description": "Ceres Air C31 agricultural spray drone, outbound to Vale Farms",
+        "description": "Ceres Air C31 spray drone",
         "initial_custodian": "34271814237",
         "intended_recipient": "698893498670",
         "label": "White card",
