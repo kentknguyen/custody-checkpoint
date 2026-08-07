@@ -171,23 +171,40 @@ In this demo, the reader only verifies the credential, not the person holding it
 
 Implementation was AI-assisted. Project ideation, scope, and design decisions are my own.
 
+### Scan order
+
 The scanning order of operations for this demo is asset → receiver → releaser. The purpose is to maintain both a zero trust protocol and final gatekeeper functionality for the releaser in this situation by validating the receiver first. If the asset is scanned first and the receiver is invalidated, then it is up to the releaser to follow next steps. Next steps could include contacting the manufacturer who created the manifest with a purchase order or the shipping and logistics company to determine who that receiver is, but the asset is never handed over to an invalid receiver. If the receiver has valid credentials plus any other required documentation and identification, then the releaser has everything they would need to then scan out the asset and complete the handoff.
+
+### Timestamps
 
 Timestamps are generated in Python to use UTC ISO-8601 since the timestamp is part of what gets hashed before the entry row is written.
 
+### Roles
+
 Roles are strings rather than booleans in order for the system to govern what the scan is allowed to do rather than what is known.
+
+### Single-hop scope
 
 This demo is a single hop transfer. One custody transfer from releaser to receiver, and the manifest does not advance after delivery. Presenting an asset that has already reached its manifested recipient is rejected at the first scan, with the reason stated that the manifest names no onward destination. A multi-hop chain would require credentials to hold both roles and the manifest to advance with each hop, neither of which is implemented here.
 
+### Revoked versus unknown credentials
+
 A revoked credential is still in the registry, flagged revoked with a date; it was once valid and is now withdrawn. A credential that isn't in the registry at all, whether removed or never added, logs as unknown. Both are rejected identically at the reader and they mean different things afterward. Revoked implies a personnel event and preserves when it happened. Unknown implies a credential the system has never authorized.
+
+### Where custody state lives
 
 The transfers table is NOT tamper-evident by design and is only updated when handoff is complete, when a session is rejected, and when a timing window is closed, and is merely a summary derived from the event log itself.
 
 CUSTODY_ASSIGNED versus TRANSFER_COMPLETED determines which party possesses the asset vs which party has released or received the asset. This distinction is critical since the releaser is the final scan in this demo. The transfer is a separate event from custody, because otherwise the system would read as TRANSFER_COMPLETED but custody would still be assigned to the releaser. By making transfers and custody separate events, the system authorizes handoff by ensuring custody is tied to the receiver once the final scan by the releaser event actually happens. Custody is derived from custody_events rather than the transfers table because transfers is mutable and unchained. If custody were read from the summary table, someone with database access could reassign an asset by editing a single row, and nothing would detect it. Reading from the hash-chained log means changing who holds an asset requires breaking the chain. The initial custodian is the releaser in the declared registry, so if an invalid receiver attempts to make a scan, the fallback of asset custody goes to the releaser and never moves until a valid receiver credential is presented.
 
+### Session expiry
+
 Expiry is evaluated lazily to check the moment another scan occurs and not in real time. A window can therefore be past its deadline in wall-clock time and remain nominally open until someone scans again. The timestamp on a TRANSFER_EXPIRED event records when expiry was detected, not when the window closed. A second asset scan mid-session aborts instead of opening a new window or extending the current one, and is rejected and logged. Otherwise, the holder of an asset tag could keep a window open indefinitely.
 
-A tag left resting on the reader is continuously in the RF field, so read() returns repeatedly. One physical presentation produces many reads. Any credential seen again within 3 seconds of last being in the field is therefore ignored entirely, with no event logged; the interval slides, so a card parked on the reader normally yields exactly one event. Transient read failures at the hardware level can interrupt that sequence, in which case the next successful read is treated as a new presentation. Without this, a receiving party holding their fob a beat too long would generate an event where a second receiving credential is read after the state has advanced. The system is expecting a releasing credential, but gets a receiving credential, which would abort the session, and writes a security event to the custody log that never actually occurred. The cost is that a legitimate re-presentation of the same credential within 3 seconds is silently dropped, and the log therefore records presentations as interpreted by the debounce rather than every RF-level read. DEBOUNCE_SECONDS is tunable; distinguishing "never left the field" from "removed and re-presented" would require presence polling via read_no_block(), which is out of scope here.
+### Debounce
+
+A tag left resting on the reader is continuously in the RF field, so read() returns repeatedly. One physical presentation produces many reads. Any credential seen again within 3 seconds of last being in the field is therefore ignored entirely, with no event logged; the interval slides, so a card parked on the reader normally yields exactly one event. Transient read failures at the hardware level can interrupt that sequence, in which case the next successful read is treated as a new presentation. Without this, a receiving party holding their fob a beat too long would generate an event where a second receiving credential is read after the state has advanced. The system is expecting a releasing credential, but gets a receiving credential, which would abort the session, and writes a security event to the custody log that never actually occurred. 
+The cost is that a legitimate re-presentation of the same credential within 3 seconds is silently dropped, and the log therefore records presentations as interpreted by the debounce rather than every RF-level read. DEBOUNCE_SECONDS is tunable; distinguishing "never left the field" from "removed and re-presented" would require presence polling via read_no_block(), which is out of scope here.
 
 
 ## Prior art
