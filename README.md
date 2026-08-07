@@ -120,7 +120,7 @@ logs/custody.db — SQLite database, created on first run. Not committed.
 ```
 
 
-## Wiring — case fan
+## Wiring — Case Fan
 
 ```
 Fan wire    → Pi GPIO Pin (Physical)
@@ -132,7 +132,7 @@ Black (GND) → Pin 6
 The fan is powered directly from the GPIO header and runs whenever the Pi has power. It is not under software control. Because it occupies Pin 6, the RC522 ground uses Pin 14, one of the header's other ground pins.
 
 
-## Wiring — RC522 reader
+## Wiring — RC522 Reader
 
 ```
 RC522 Pin → Pi GPIO Pin (Physical)
@@ -207,7 +207,7 @@ A tag left resting on the reader is continuously in the RF field, so read() retu
 The cost is that a legitimate re-presentation of the same credential within 3 seconds is silently dropped, and the log therefore records presentations as interpreted by the debounce rather than every RF-level read. DEBOUNCE_SECONDS is tunable; distinguishing "never left the field" from "removed and re-presented" would require presence polling via read_no_block(), which is out of scope here.
 
 
-## Prior art
+## Prior Art
 
 A preliminary prior-art search found that the mechanisms this demo combines are well established. Registry-held title as an alternative to the bill of lading dates to at least 2000 (US7069252). Verifying a collector against system-held shipment data before release is patented across multiple jurisdictions (UPS, US10929806). Hash-chained tamper-evident logging with external anchoring is mature (VEGA Grieshaber, US11126750; Microsoft, US11139954). RFID ownership-transfer protocols are an established academic literature.
 
