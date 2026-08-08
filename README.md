@@ -19,12 +19,15 @@ This demo is a checkpoint system where two parties (releaser/receiver) plus the 
 
 ```mermaid
 stateDiagram-v2
+    state "Awaiting recipient" as AwaitingRecipient
+    state "Awaiting custodian" as AwaitingCustodian
+
     [*] --> Idle
-    Idle --> AwaitingRecipient : asset tag presented
-    AwaitingRecipient --> AwaitingCustodian : credential matches the manifest
-    AwaitingCustodian --> Idle : custodian releases, custody assigned
-    AwaitingRecipient --> Idle : rejected or expired, session aborted
-    AwaitingCustodian --> Idle : rejected or expired, session aborted
+    Idle --> AwaitingRecipient : Asset scanned
+    AwaitingRecipient --> AwaitingCustodian : Manifest match
+    AwaitingCustodian --> Idle : Custody assigned
+    AwaitingRecipient --> Idle : Rejected or expired
+    AwaitingCustodian --> Idle : Rejected or expired
 ```
 
 Rejection reasons and the session timeout are omitted here for readability. Every path is enumerated in test_scenarios.py.
