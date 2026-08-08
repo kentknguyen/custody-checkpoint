@@ -19,6 +19,7 @@ This demo is a checkpoint system where two parties (releaser/receiver) plus the 
 
 ```mermaid
 stateDiagram-v2
+    direction LR
     state "Awaiting recipient" as AwaitingRecipient
     state "Awaiting custodian" as AwaitingCustodian
 
