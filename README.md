@@ -15,6 +15,21 @@ On March 24, 2026, fifteen Ceres Air C31 agricultural spray drones with a value 
 This demo is a checkpoint system where two parties (releaser/receiver) plus the asset must verify and authorize chain of custody with physical badges. The asset scan retrieves a shipping manifest, which is never presented with the shipment, and the receiver's credential is checked against the manifest before custody of the asset is transferable. Various scenarios of attempting the transfer are recorded with hash chaining to make tampering detectable. This demo is intended to provide a potential solution to validating transfer handoffs from releaser to receiver from the outset in addition to paperwork verification. With two-party plus asset verification, a bad actor would not only have to forge documents and emails, but they would also need to obtain or clone a receiver's physical credentials.
 
 
+## Transfer Flow
+
+```mermaid
+stateDiagram-v2
+    [*] --> Idle
+    Idle --> AwaitingRecipient : asset tag presented
+    AwaitingRecipient --> AwaitingCustodian : credential matches the manifest
+    AwaitingCustodian --> Idle : custodian releases, custody assigned
+    AwaitingRecipient --> Idle : rejected or expired, session aborted
+    AwaitingCustodian --> Idle : rejected or expired, session aborted
+```
+
+Rejection reasons and the session timeout are omitted here for readability. Every path is enumerated in test_scenarios.py.
+
+
 ## Hardware
 
 - Raspberry Pi 4 4GB Model B
