@@ -103,6 +103,31 @@ def validate():
             f"UID(s) registered as both credential and asset: {sorted(overlap)}"
         )
 
+    cred_fields = ("name", "organization", "role", "revoked", "revoked_on", "label")
+    for uid, cred in CREDENTIALS.items():
+        missing = [k for k in cred_fields if k not in cred]
+        if missing:
+            problems.append(
+                f"credential {uid} is missing: {', '.join(missing)}"
+            )
+        elif cred["role"] not in (ROLE_RELEASING, ROLE_RECEIVING):
+            problems.append(
+                f"credential {uid} has unrecognised role {cred['role']}"
+            )
+
+    asset_fields = ("asset_id", "description", "initial_custodian",
+                    "intended_recipient", "label")
+    for uid, asset in ASSETS.items():
+        missing = [k for k in asset_fields if k not in asset]
+        if missing:
+            problems.append(
+                f"asset {uid} is missing: {', '.join(missing)}"
+            )
+
+    # Malformed entries would break the relational checks below.
+    if problems:
+        return problems
+
     for uid, asset in ASSETS.items():
         custodian = asset["initial_custodian"]
         recipient = asset["intended_recipient"]

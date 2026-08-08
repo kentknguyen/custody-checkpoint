@@ -122,9 +122,15 @@ def main():
 
     except KeyboardInterrupt:
         print("\n\nCheckpoint shutting down.")
-        resolve_open_session(controller)
-        print("Run 'python3 verify.py' to check custody log integrity.")
+    except Exception as exc:
+        print(f"\n\nCheckpoint stopped by an unexpected error: {exc}")
+        raise
     finally:
+        try:
+            resolve_open_session(controller)
+            print("Run 'python3 verify.py' to check custody log integrity.")
+        except Exception as exc:
+            print(f"Could not resolve the open session: {exc}")
         GPIO.cleanup()
 
 

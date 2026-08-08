@@ -193,7 +193,7 @@ A revoked credential is still in the registry, flagged revoked with a date; it w
 
 ### Where custody state lives
 
-The transfers table is NOT tamper-evident by design and is only updated when handoff is complete, when a session is rejected, and when a timing window is closed, and is merely a summary derived from the event log itself.
+A row is created in the transfers table when an asset is presented, and resolved when the handoff completes, is rejected, or expires. The table is NOT tamper-evident by design. It is a mutable summary derived from the event log itself.
 
 CUSTODY_ASSIGNED versus TRANSFER_COMPLETED determines which party possesses the asset vs which party has released or received the asset. This distinction is critical since the releaser is the final scan in this demo. The transfer is a separate event from custody, because otherwise the system would read as TRANSFER_COMPLETED but custody would still be assigned to the releaser. By making transfers and custody separate events, the system authorizes handoff by ensuring custody is tied to the receiver once the final scan by the releaser event actually happens. Custody is derived from custody_events rather than the transfers table because transfers is mutable and unchained. If custody were read from the summary table, someone with database access could reassign an asset by editing a single row, and nothing would detect it. Reading from the hash-chained log means changing who holds an asset requires breaking the chain. The initial custodian is the releaser in the declared registry, so if an invalid receiver attempts to make a scan, the fallback of asset custody goes to the releaser and never moves until a valid receiver credential is presented.
 
