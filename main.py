@@ -42,7 +42,7 @@ def print_event_log(limit=3):
     for timestamp, card_id, role, event_type, message, transfer_id, asset_id in events:
         tid = f"#{transfer_id}" if transfer_id is not None else "--"
         aid = asset_id if asset_id else "-"
-        print(f"  [{timestamp}] {tid:>4}  {event_type:<24} {aid}")
+        print(f"  [{timestamp[11:19]}] {tid:>4}  {event_type:<24} {aid}")
         print(f"      {message}")
     print("-" * 45)
     print()
