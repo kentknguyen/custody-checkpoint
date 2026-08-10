@@ -171,7 +171,7 @@ IRQ       → Unconnected
 
 ### Out of scope
 
-"System active" is merely text. In this demo, there is no actual drone or drone operating software running; this would require additional layers for production, which is not part of this demo.
+"SYSTEM ACTIVE" is merely text. In this demo, there is no actual drone or drone operating software running; this would require additional layers for production, which is not part of this demo.
 
 Credential enrollment is out of scope for this demo. A system that issues credentials on the strength of forged paperwork inherits the same weakness one step earlier, and enrollment requires its own verification process.
 
