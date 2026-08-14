@@ -7,12 +7,12 @@ transfers, and every attempt is written to a hash-chained log.
 
 ## Problem
 
-On March 24, 2026, fifteen Ceres Air C31 agricultural spray drones with a value of approximately $870,000 total were stolen from CAC International, a logistics and shipping company in Harrison, NJ, using forged bill of lading documentation and a forged confirmation email. No break-in occurred, and the custody transfer was authorized and accepted entirely by these forged documents as a legitimate handoff. The drones were subsequently recovered at a Prudent Corporation warehouse in Dover, NJ on April 27, 2026.
+On March 24, 2026, fifteen Ceres Air C31 agricultural spray drones with a value of approximately $870,000 total were stolen from CAC International, a logistics and shipping company in Harrison, NJ, using forged bill of lading documentation and a forged confirmation email. No break-in occurred. The custody transfer was authorized entirely by the forged documents. The drones were subsequently recovered at a Prudent Corporation warehouse in Dover, NJ on April 27, 2026.
 
 
 ## Demo Purpose
 
-This demo is a checkpoint system where two parties (releaser/receiver) plus the asset must verify and authorize chain of custody with physical badges. The asset scan retrieves a shipping manifest, which is never presented with the shipment, and the receiver's credential is checked against the manifest before custody of the asset is transferable. Various scenarios of attempting the transfer are recorded with hash chaining to make tampering detectable. This demo is intended to provide a potential solution to validating transfer handoffs from releaser to receiver from the outset in addition to paperwork verification. With two-party plus asset verification, a bad actor would not only have to forge documents and emails, but they would also need to obtain or clone a receiver's physical credentials.
+This demo is a checkpoint system where two parties (releaser/receiver) plus the asset must verify and authorize chain of custody with physical badges. The asset scan retrieves a shipping manifest, which is never presented with the shipment, and the receiver's credential is checked against the manifest before custody transfers. Various scenarios of attempting the transfer are recorded with hash chaining to make tampering detectable. This demo shows one way to validate a handoff at the moment it happens. It is meant to sit alongside paperwork verification, not replace it. With two-party plus asset verification, a bad actor would not only have to forge documents and emails, but they would also need to obtain or clone a receiver's physical credentials.
 
 
 ## Transfer Flow
@@ -181,7 +181,7 @@ The S50 cards and key fobs used for this demo use the Crypto-1 cipher, which was
 
 ### Known weaknesses
 
-Custody events logging is tamper-evident, but not tamper-proof since there is no secret in hashing. If a bad actor has write access to custody.db and a copy of database.py, they can edit rows and produce counterfeit hashing resulting in a verified chain. The system detects chain modification and interior deletion. Truncation is not detectable, because nothing in the log records its own length. Delete events from the end and every remaining link still validates, so the chain reports intact. Detecting it requires comparing the head hash against a value recorded somewhere the operator does not control.
+The custody_events log is tamper-evident, but not tamper-proof since there is no secret in hashing. If a bad actor has write access to custody.db and a copy of database.py, they can edit rows and produce counterfeit hashing resulting in a verified chain. The system detects chain modification and interior deletion. Truncation is not detectable, because nothing in the log records its own length. Delete events from the end and every remaining link still validates, so the chain reports intact. Detecting it requires comparing the head hash against a value recorded somewhere the operator does not control.
 
 In this demo, the reader only verifies the credential, not the person holding it. A valid credential in the wrong hands still passes. Two-party verification mitigates this by requiring two credentials to be compromised rather than one, and the log is what makes reconstruction of a handoff possible afterward. In a production version at the reader, another layer of verification such as a PIN entry, biometrics, or photo capture would likely be necessary, but is NOT built into this demo.
 
