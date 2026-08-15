@@ -5,6 +5,11 @@ itself must authenticate against a registry-held manifest before custody
 transfers, and every attempt is written to a hash-chained log.
 
 
+## Demo
+
+https://github.com/user-attachments/assets/a12811e9-62ea-417d-82a1-3e5474602c78
+
+
 ## Problem
 
 On March 24, 2026, fifteen Ceres Air C31 agricultural spray drones with a value of approximately $870,000 total were stolen from CAC International, a logistics and shipping company in Harrison, NJ, using forged bill of lading documentation and a forged confirmation email. No break-in occurred. The custody transfer was authorized entirely by the forged documents. The drones were subsequently recovered at a Prudent Corporation warehouse in Dover, NJ on April 27, 2026.
