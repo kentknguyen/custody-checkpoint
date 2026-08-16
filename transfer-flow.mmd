@@ -1,0 +1,11 @@
+stateDiagram-v2
+    direction LR
+    state "Awaiting recipient" as AwaitingRecipient
+    state "Awaiting custodian" as AwaitingCustodian
+
+    [*] --> Idle
+    Idle --> AwaitingRecipient : Asset scanned
+    AwaitingRecipient --> AwaitingCustodian : Manifest match
+    AwaitingCustodian --> Idle : Custody assigned
+    AwaitingRecipient --> Idle : Rejected or expired
+    AwaitingCustodian --> Idle : Rejected or expired

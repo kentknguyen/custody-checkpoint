@@ -22,19 +22,7 @@ This demo is a checkpoint system where two parties (releaser/receiver) plus the 
 
 ## Transfer Flow
 
-```mermaid
-stateDiagram-v2
-    direction LR
-    state "Awaiting recipient" as AwaitingRecipient
-    state "Awaiting custodian" as AwaitingCustodian
-
-    [*] --> Idle
-    Idle --> AwaitingRecipient : Asset scanned
-    AwaitingRecipient --> AwaitingCustodian : Manifest match
-    AwaitingCustodian --> Idle : Custody assigned
-    AwaitingRecipient --> Idle : Rejected or expired
-    AwaitingCustodian --> Idle : Rejected or expired
-```
+![Custody transfer state machine](transfer-flow.svg)
 
 Rejection reasons and the session timeout are omitted here for readability. Every path is enumerated in test_scenarios.py.
 
