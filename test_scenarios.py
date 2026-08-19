@@ -5,15 +5,14 @@ Exercises every path through handoff.py against a temporary database and
 fixture registries. Requires no hardware and does not touch the real
 custody log.
 
-    python3 test_scenarios.py
-
-Exit code 0 if every scenario behaves as expected, 1 otherwise.
+    pytest
 """
 
 import os
-import sys
 import tempfile
 from datetime import datetime, timezone, timedelta
+
+import pytest
 
 import database as db
 
@@ -22,6 +21,7 @@ db.DB_PATH = os.path.join(tempfile.mkdtemp(), "test_custody.db")
 
 import config
 import handoff
+import verify
 
 # --- Fixture registries -----------------------------------------------
 
@@ -64,13 +64,12 @@ config.ASSETS = {
     },
 }
 
-# --- Harness ----------------------------------------------------------
 
-results = []
+# --- Fixtures and helpers ---------------------------------------------
 
-
-def fresh():
-    """A new controller against an empty log."""
+@pytest.fixture
+def controller():
+    """A controller backed by an empty custody log."""
     if os.path.exists(db.DB_PATH):
         os.remove(db.DB_PATH)
     db.init_db()
@@ -86,154 +85,118 @@ def last_event():
     return types[0] if types else None
 
 
-def check(name, passed, detail=""):
-    results.append(passed)
-    print(f"{'PASS' if passed else 'FAIL'}  {name}")
-    if not passed and detail:
-        print(f"        {detail}")
-
-
-def idle(c):
+def is_idle(c):
     return c.state == handoff.STATE_IDLE
 
 
-# --- Scenarios --------------------------------------------------------
+# --- Completing a transfer --------------------------------------------
 
-def scenario_happy_path():
-    c = fresh()
-    c.handle_scan(ASSET_TAG)
-    c.handle_scan(CARRIER)
-    c.handle_scan(WAREHOUSE)
-    check("happy path completes and resets",
-          idle(c) and last_event() == handoff.EV_CUSTODY_ASSIGNED,
-          f"state={c.state} last={last_event()}")
-    check("custody moves to the receiving party",
-          db.get_current_custodian(ASSET_ID, WAREHOUSE) == CARRIER,
-          f"custodian={db.get_current_custodian(ASSET_ID, WAREHOUSE)}")
+def test_happy_path_completes_and_resets(controller):
+    controller.handle_scan(ASSET_TAG)
+    controller.handle_scan(CARRIER)
+    controller.handle_scan(WAREHOUSE)
+    assert is_idle(controller)
+    assert last_event() == handoff.EV_CUSTODY_ASSIGNED
 
 
-def scenario_credential_without_asset():
-    c = fresh()
-    c.handle_scan(CARRIER)
-    check("credential with no asset in session is rejected",
-          idle(c) and last_event() == handoff.EV_REJECTED)
+def test_custody_moves_to_the_receiving_party(controller):
+    controller.handle_scan(ASSET_TAG)
+    controller.handle_scan(CARRIER)
+    controller.handle_scan(WAREHOUSE)
+    assert db.get_current_custodian(ASSET_ID, WAREHOUSE) == CARRIER
 
 
-def scenario_unmanifested_recipient():
-    c = fresh()
-    c.handle_scan(ASSET_TAG)
-    c.handle_scan(OTHER_CARRIER)
-    check("recipient not on the manifest aborts the session",
-          idle(c) and last_event() == handoff.EV_REJECTED)
+# --- Scans that should be refused --------------------------------------
+
+def test_credential_with_no_asset_in_session_is_rejected(controller):
+    controller.handle_scan(CARRIER)
+    assert is_idle(controller)
+    assert last_event() == handoff.EV_REJECTED
 
 
-def scenario_releasing_credential_at_receive_stage():
-    c = fresh()
-    c.handle_scan(ASSET_TAG)
-    c.handle_scan(WAREHOUSE)
-    check("releasing credential cannot accept custody",
-          idle(c) and last_event() == handoff.EV_REJECTED)
+def test_recipient_not_on_the_manifest_aborts_the_session(controller):
+    controller.handle_scan(ASSET_TAG)
+    controller.handle_scan(OTHER_CARRIER)
+    assert is_idle(controller)
+    assert last_event() == handoff.EV_REJECTED
 
 
-def scenario_wrong_custodian():
-    c = fresh()
-    c.handle_scan(ASSET_TAG)
-    c.handle_scan(CARRIER)
-    c.handle_scan(OTHER_WAREHOUSE)
-    check("a party who does not hold the asset cannot release it",
-          idle(c) and last_event() == handoff.EV_REJECTED)
+def test_releasing_credential_cannot_accept_custody(controller):
+    controller.handle_scan(ASSET_TAG)
+    controller.handle_scan(WAREHOUSE)
+    assert is_idle(controller)
+    assert last_event() == handoff.EV_REJECTED
 
 
-def scenario_receiving_credential_at_release_stage():
-    c = fresh()
-    c.handle_scan(ASSET_TAG)
-    c.handle_scan(CARRIER)
-    c.handle_scan(OTHER_CARRIER)
-    check("receiving credential cannot release custody",
-          idle(c) and last_event() == handoff.EV_REJECTED)
+def test_a_party_who_does_not_hold_the_asset_cannot_release_it(controller):
+    controller.handle_scan(ASSET_TAG)
+    controller.handle_scan(CARRIER)
+    controller.handle_scan(OTHER_WAREHOUSE)
+    assert is_idle(controller)
+    assert last_event() == handoff.EV_REJECTED
 
 
-def scenario_unregistered_idle():
-    c = fresh()
-    c.handle_scan(STRANGER)
-    check("unregistered tag at idle is logged and rejected",
-          idle(c) and last_event() == handoff.EV_UNKNOWN)
+def test_receiving_credential_cannot_release_custody(controller):
+    controller.handle_scan(ASSET_TAG)
+    controller.handle_scan(CARRIER)
+    controller.handle_scan(OTHER_CARRIER)
+    assert is_idle(controller)
+    assert last_event() == handoff.EV_REJECTED
 
 
-def scenario_unregistered_mid_session():
-    c = fresh()
-    c.handle_scan(ASSET_TAG)
-    c.handle_scan(STRANGER)
-    check("unregistered tag mid-session aborts",
-          idle(c) and handoff.EV_UNKNOWN in event_types())
+def test_asset_presented_mid_session_aborts(controller):
+    controller.handle_scan(ASSET_TAG)
+    controller.handle_scan(ASSET_TAG)
+    assert is_idle(controller)
+    assert last_event() == handoff.EV_REJECTED
 
 
-def scenario_revoked_credential():
-    c = fresh()
-    c.handle_scan(ASSET_TAG)
-    c.handle_scan(CARRIER)
-    c.handle_scan(REVOKED)
-    check("revoked credential aborts and logs distinctly",
-          idle(c) and handoff.EV_REVOKED in event_types())
+# --- Credentials the registry does not accept --------------------------
+
+def test_unregistered_tag_at_idle_is_logged_and_rejected(controller):
+    controller.handle_scan(STRANGER)
+    assert is_idle(controller)
+    assert last_event() == handoff.EV_UNKNOWN
 
 
-def scenario_asset_mid_session():
-    c = fresh()
-    c.handle_scan(ASSET_TAG)
-    c.handle_scan(ASSET_TAG)
-    check("asset presented mid-session aborts",
-          idle(c) and last_event() == handoff.EV_REJECTED)
+def test_unregistered_tag_mid_session_aborts(controller):
+    controller.handle_scan(ASSET_TAG)
+    controller.handle_scan(STRANGER)
+    assert is_idle(controller)
+    assert handoff.EV_UNKNOWN in event_types()
 
 
-def scenario_expiry():
-    c = fresh()
-    c.handle_scan(ASSET_TAG)
-    c.window_expires_at = datetime.now(timezone.utc) - timedelta(seconds=1)
-    c.handle_scan(CARRIER)
-    check("an overdue window expires at the next scan",
-          idle(c) and handoff.EV_EXPIRED in event_types())
+def test_revoked_credential_aborts_and_logs_distinctly(controller):
+    controller.handle_scan(ASSET_TAG)
+    controller.handle_scan(CARRIER)
+    controller.handle_scan(REVOKED)
+    assert is_idle(controller)
+    assert handoff.EV_REVOKED in event_types()
 
 
-def scenario_single_hop_limitation():
-    """Documented limitation: a RECEIVING credential can never release, so
-    the chain supports one hop. Asserted here so the limit is explicit."""
-    c = fresh()
-    c.handle_scan(ASSET_TAG)
-    c.handle_scan(CARRIER)
-    c.handle_scan(WAREHOUSE)
-    c.handle_scan(ASSET_TAG)
-    check("delivered asset cannot open a new session",
-          idle(c) and last_event() == handoff.EV_DELIVERED)
+# --- Session lifecycle --------------------------------------------------
+
+def test_an_overdue_window_expires_at_the_next_scan(controller):
+    controller.handle_scan(ASSET_TAG)
+    controller.window_expires_at = datetime.now(timezone.utc) - timedelta(seconds=1)
+    controller.handle_scan(CARRIER)
+    assert is_idle(controller)
+    assert handoff.EV_EXPIRED in event_types()
 
 
-def scenario_chain_integrity():
-    import verify
-    c = fresh()
-    c.handle_scan(ASSET_TAG)
-    c.handle_scan(CARRIER)
-    c.handle_scan(WAREHOUSE)
-    check("hash chain verifies after a full transfer", verify.verify_chain())
+def test_delivered_asset_cannot_open_a_new_session(controller):
+    controller.handle_scan(ASSET_TAG)
+    controller.handle_scan(CARRIER)
+    controller.handle_scan(WAREHOUSE)
+    controller.handle_scan(ASSET_TAG)
+    assert is_idle(controller)
+    assert last_event() == handoff.EV_DELIVERED
 
 
-# --- Runner -----------------------------------------------------------
+# --- Log integrity ------------------------------------------------------
 
-if __name__ == "__main__":
-    for fn in [
-        scenario_happy_path,
-        scenario_credential_without_asset,
-        scenario_unmanifested_recipient,
-        scenario_releasing_credential_at_receive_stage,
-        scenario_wrong_custodian,
-        scenario_receiving_credential_at_release_stage,
-        scenario_unregistered_idle,
-        scenario_unregistered_mid_session,
-        scenario_revoked_credential,
-        scenario_asset_mid_session,
-        scenario_expiry,
-        scenario_single_hop_limitation,
-        scenario_chain_integrity,
-    ]:
-        fn()
-
-    print(f"\n{sum(results)}/{len(results)} checks passed")
-    sys.exit(0 if all(results) else 1)
+def test_hash_chain_verifies_after_a_full_transfer(controller):
+    controller.handle_scan(ASSET_TAG)
+    controller.handle_scan(CARRIER)
+    controller.handle_scan(WAREHOUSE)
+    assert verify.verify_chain()
