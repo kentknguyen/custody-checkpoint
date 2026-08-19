@@ -97,7 +97,7 @@ python3 -c "from mfrc522 import SimpleMFRC522; print(SimpleMFRC522().read()[0])"
 ```
 python3 main.py        # run the checkpoint
 python3 verify.py      # check custody log integrity
-pytest                 # run the scenario tests, no hardware required
+python3 -m pytest      # run the scenario tests, no hardware required
 ```
 
 
