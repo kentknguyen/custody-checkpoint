@@ -222,7 +222,7 @@ The cost is that a legitimate re-presentation of the same credential within 3 se
 
 ## How This Was Built
 
-Implementation was AI-assisted. Project ideation, scope, and design decisions are my own. I specified what the system needed to prove, made the architecture calls, and directed the build. The code was verified rather than trusted.
+Implementation was AI-assisted. Project ideation, scope, and design decisions are my own. I specified what the system needed to prove and directed the build. The code was verified rather than trusted.
 
 Four verification steps changed the result:
 
