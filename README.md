@@ -181,8 +181,6 @@ In this demo, the reader only verifies the credential, not the person holding it
 
 ## Design Decisions
 
-Implementation was AI-assisted. Project ideation, scope, and design decisions are my own.
-
 ### Scan order
 
 The scanning order of operations for this demo is asset → receiver → releaser. The purpose is to maintain both a zero trust protocol and final gatekeeper functionality for the releaser in this situation by validating the receiver first. If the asset is scanned first and the receiver is invalidated, then it is up to the releaser to follow next steps. Next steps could include contacting the manufacturer who created the manifest with a purchase order or the shipping and logistics company to determine who that receiver is, but the asset is never handed over to an invalid receiver. If the receiver has valid credentials plus any other required documentation and identification, then the releaser has everything they would need to then scan out the asset and complete the handoff.
@@ -217,6 +215,21 @@ Expiry is evaluated lazily to check the moment another scan occurs and not in re
 
 A tag left resting on the reader is continuously in the RF field, so read() returns repeatedly. One physical presentation produces many reads. Any credential seen again within 3 seconds of last being in the field is therefore ignored entirely, with no event logged; the interval slides, so a card parked on the reader normally yields exactly one event. Transient read failures at the hardware level can interrupt that sequence, in which case the next successful read is treated as a new presentation. Without this, a receiving party holding their fob a beat too long would generate an event where a second receiving credential is read after the state has advanced. The system is expecting a releasing credential, but gets a receiving credential, which would abort the session, and writes a security event to the custody log that never actually occurred. 
 The cost is that a legitimate re-presentation of the same credential within 3 seconds is silently dropped, and the log therefore records presentations as interpreted by the debounce rather than every RF-level read. DEBOUNCE_SECONDS is tunable; distinguishing "never left the field" from "removed and re-presented" would require presence polling via read_no_block(), which is out of scope here.
+
+
+## How This Was Built
+
+Implementation was AI-assisted. Project ideation, scope, and design decisions are my own. I specified what the system needed to prove, made the architecture calls, and directed the build. The code was verified rather than trusted.
+
+Four verification steps changed the result:
+
+**A code review in a clean session**, with no context from the build, found an orphaned file from an earlier single-party version still sitting in the repo, and a gap between what verify.py claimed to detect and what it actually detected.
+
+**A second review by a different model family**, chosen for different blind spots rather than more capability, found three further issues: a documentation claim the code did not support, an exit path that could leave a transfer row unresolved, and a validation function that missed malformed registry entries. All three were fixed and re-verified.
+
+**A prior-art search** showed my original claim about novelty was too strong, which is why the Prior Art section below exists. One of the four citations was misattributed and was caught by checking each one against the patent office record before publishing.
+
+**The setup instructions were tested** by flashing a blank SD card, cloning this repo, and following the README literally. That found a step ordering error where a reboot left the reader in the wrong directory.
 
 
 ## Prior Art
